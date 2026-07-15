@@ -50,7 +50,8 @@ AI-assisted engineering tools
 Atropos source files are plain text.
 
 Graphical representations of Ladder Diagram, Function Block Diagram, and
-Sequential Function Chart programs are considered **views of source code**,
+Sequential Function Chart programs are considered **views of source
+code**,
 not the canonical project format.
 
 The intended model is:
