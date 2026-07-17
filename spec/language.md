@@ -119,9 +119,13 @@ authored.
 
 ### 2.6 Shared Semantic Environment
 
-All supported Atropos control languages participate in a common semantic
-environment. (not sure about this it is a good goal to work towards but idk if
-there will be differences or not)
+Atropos is designed to provide a common semantic environment across all
+supported control languages.
+
+The exact degree to which language-specific semantics differ shall be defined
+as each control language specification matures. Language-specific syntax and
+execution rules may differ, but shared language constructs should use common
+definitions wherever practical.
 
 The common semantic environment includes:
 
@@ -139,27 +143,30 @@ The common semantic environment includes:
 A symbol declared according to the Atropos language rules may be referenced
 from any control language in which that symbol and its type are valid.
 
-Language boundaries shall not implicitly create isolated variable systems.
+Language boundaries shall not implicitly create isolated variable or type
+systems.
 
 ## 3. Source Model
 
 An Atropos application consists of one or more plain-text source files.
 
-The initial source file extension is: (good start but we are not married to
-this.)
+The initial source file extension is:
 
 ```text
 .atp
 ```
 
-The file extension is part of the Atropos project convention and does not
-define a compiler implementation.
+The `.atp` extension is an initial project convention and may be revised as the
+language evolves.
 
-An Atropos compiler may accept source from other input mechanisms provided the
-resulting program is semantically equivalent to canonical Atropos source. (no
-the other sources should create .atp files directly and load those. i want to
-encourage the user to notice and use the atp files even if they started with a
-graphical interface)
+Canonical Atropos applications shall be represented by Atropos source files.
+
+Alternative authoring environments, including graphical tools, shall generate,
+load, and save canonical Atropos source files directly rather than maintaining
+a separate proprietary source representation.
+
+Users shall be able to inspect and work with the canonical source files even
+when an application was initially created through a graphical authoring tool.
 
 ### 3.1 Compilation Unit
 
@@ -183,8 +190,7 @@ revisions of this specification.
 ### 3.2 Source Ordering
 
 Source declaration order shall not define execution order unless explicitly
-stated by the applicable language or execution specification. (yes but i do not
-want this to allow for sloppy code)
+stated by the applicable language or execution specification.
 
 The compiler shall determine symbol relationships through semantic analysis.
 
@@ -194,15 +200,17 @@ defined.
 The physical ordering of source files in a filesystem shall not define
 application execution order.
 
+Although declaration order shall not alter application semantics except where
+explicitly defined, source should be organized consistently and logically to
+support readability, review, troubleshooting, and long-term maintenance.
+
 ### 3.3 Source Encoding
 
 Atropos source files shall use UTF-8 encoding.
 
-Canonical Atropos source shall use LF line endings. (should work with either
-LF or CRLF, controls engineers are often on windows machines)
+Compilers shall accept both LF and CRLF line endings.
 
-Compilers may accept other platform line endings as input but shall treat
-line-ending differences as semantically insignificant. (yes just said this)
+Line-ending style shall be semantically insignificant.
 
 ## 4. Program Organization
 
@@ -238,7 +246,10 @@ Program execution shall be established by the Atropos execution and task model.
 
 A Function Block is a stateful Program Organization Unit.
 
-Each Function Block instance has its own instance state.
+A Function Block represents reusable control behavior whose output may depend
+upon both its current inputs and its persistent internal state.
+
+Each Function Block instance has its own independent instance state.
 
 Function Block behavior shall be defined by one or more supported Atropos
 control language bodies as permitted by the Function Block specification.
@@ -246,18 +257,28 @@ control language bodies as permitted by the Function Block specification.
 Function Block state shall persist between invocations according to the
 Atropos execution model.
 
+Function Blocks are appropriate for control components whose behavior develops
+over time, including timers, counters, equipment modules, sequences, and other
+stateful control objects.
+
 ### 4.3 Function
 
-A Function is a Program Organization Unit that produces a result from its
-jjdefined inputs.
+A Function is a stateless Program Organization Unit that produces a result from
+its defined inputs.
+
+A Function shall not retain execution state between invocations.
+
+Given the same input values and the same applicable constant values, a Function
+shall produce the same result.
+
+Functions are appropriate for calculations, conversions, comparisons, and
+other deterministic operations that do not require persistent internal state.
 
 Functions shall follow the state and side-effect requirements defined by the
 Atropos function specification and applicable IEC 61131-3 semantics.
 
 The compiler shall reject Function behavior that violates required Function
 semantics.
-
-(please make the difference between function blocks and functions more clear)
 
 ## 5. Control Language Bodies
 
@@ -289,7 +310,7 @@ END_PROGRAM
 The example above is illustrative.
 
 The exact block delimiters, declaration syntax, and grammar are not yet
-normative. (Yes we will need to work on this more)
+normative.
 
 ### 5.1 Language Identity
 
@@ -316,34 +337,36 @@ semantic environment.
 For example, a variable written by Ladder Diagram logic may be read by
 Structured Text logic if:
 
-* The variable is visible in both scopes (global scope, all other scopes will
-be local)
-* The variable type is valid for both operations (variable types should be
-common across all languages unless you can give me a convincing argument as to
-why not)
+* The variable is globally visible to both control bodies
+* The variable type is valid for both operations
 * The access does not violate language or execution rules
+
+Variables not declared as global shall remain local to the Program Organization
+Unit in which they are declared.
+
+All supported control languages shall use the common Atropos type system unless
+a language-specific restriction is explicitly defined and justified by the
+applicable control language specification.
 
 The compiler shall resolve cross-language symbol references through the common
 Atropos symbol table.
 
 ### 5.3 Cross-Language Execution
 
-The use of multiple source languages does not independently define execution
-order. (youve said this a lot)
+Execution shall begin with a Program invoked by the configured task model.
 
-Execution order is determined by:
+Within that Program, execution proceeds in defined source order through the
+main program body and through any routines, Functions, or Function Blocks that
+are explicitly invoked.
 
-* Task configuration
-* Program organization
-* Routine or body invocation
-* Language-specific execution semantics
+A declaration that is not reached through the active invocation path shall not
+execute solely because it exists in source.
 
-(Code execution will scan line by line through the main program unit and any
-subroutines called by that program unit anything outside of that would be
-declared but not called)
+Each control language shall follow its own defined execution semantics within
+its body.
 
-A compiler shall not reorder control bodies in a manner that changes defined
-application behavior.
+A compiler shall not reorder control bodies or invocations in a manner that
+changes defined application behavior.
 
 ## 6. Types
 
@@ -381,21 +404,25 @@ Atropos shall provide explicit variable declaration and scope rules.
 The planned scope categories include:
 
 * Local scope
-* Program scope
-* Function Block instance scope (to me this is just local scope said 3 times)
 * Global scope
 
-Additional scope categories may be defined where required by IEC 61131-3
-alignment or the Atropos execution model.
+Local scope applies to variables declared within a Program, Function Block,
+Function, routine, or other locally scoped language construct.
+
+Additional scope rules may be defined where required by IEC 61131-3 alignment
+or the Atropos execution model.
 
 ### 7.1 Local Scope
 
 Local scope should be preferred for state that does not require external
 visibility.
 
-A locally scoped variable shall not be accessible outside its defined scope
-unless explicitly exposed through a defined language mechanism.
-(No there will be no such mechanisms)
+A locally scoped variable shall not be accessible outside the Program
+Organization Unit or language construct in which it is declared.
+
+Atropos shall not provide a mechanism that exposes an otherwise local variable
+outside its declared scope. Data that must be shared shall be declared through
+an appropriate global interface.
 
 ### 7.2 Global Scope
 
@@ -404,17 +431,14 @@ Atropos shall support globally visible variables.
 Global variables are required for practical industrial control applications
 and interoperability between application components.
 
-The existence of global scope shall not imply that unrestricted global state
-is preferred. (any variables that are not used out of the local program should
-be local)
+Variables that are not used outside their local Program Organization Unit
+should remain locally scoped.
 
-Compiler diagnostics and static analysis tools may identify excessive global
-state, ambiguous ownership, or unsafe access patterns. (yes i like this)
+Compiler diagnostics and static analysis tools may issue warnings for excessive
+global state, ambiguous ownership, or unsafe access patterns.
 
-Such diagnostics shall not change the defined semantics of valid application
-source unless the relevant rule is defined as a compilation error.
-(no it should just report on the issues, it is on the programmer to change
-issues. these sound like compiler warnings to me actually)
+Such warnings shall report the condition to the programmer but shall not alter
+the defined semantics of otherwise valid application source.
 
 ### 7.3 Symbol Identity
 
@@ -426,9 +450,11 @@ editor-generated identifiers, or filesystem ordering.
 The compiler may generate internal identifiers.
 
 Generated internal identifiers are implementation details and shall not
-replace canonical source names in the language specification. (yes but i 
-would like the user generated function to work in the same way though you are
-right they should not alter existing symbols)
+replace, alter, or obscure user-defined source names.
+
+User-defined identifiers shall remain the canonical names used for source,
+diagnostics, debugging, and external inspection unless an explicit aliasing
+feature is later defined by the language specification.
 
 ## 8. User-Defined Types
 
@@ -445,16 +471,14 @@ TYPE MotorStatus
     Speed   : REAL;
 END_TYPE
 ```
-(good syntax)
 
 This syntax is illustrative and is not yet normative.
 
 User-defined types shall be part of the common Atropos type system and shall
 be usable by all supported control languages.
 
-User-defined type semantics shall not depend on a vendor-specific construct
-such as a Rockwell Automation UDT. (a little too on the nose, we need to say
-this without literally saying it)
+User-defined types are native Atropos language constructs and shall be
+defined independently of any target-specific implementation.
 
 Compiler backends may map Atropos user-defined types to equivalent
 target-specific constructs.
@@ -471,12 +495,12 @@ Function Blocks provide the core language mechanism for encapsulating:
 * Internal variables
 * Control behavior
 
-A compiler backend may map an Atropos Function Block to a target-specific
-reusable control construct.
+A compiler backend may map an Atropos Function Block to an equivalent
+target-specific reusable control construct.
 
-The Atropos language specification shall not define Function Blocks in terms
-of vendor-specific constructs such as Add-On Instructions. (again too on
-the nose)
+Function Block semantics shall be defined by the Atropos language
+specification rather than by the terminology or implementation model of any
+specific target.
 
 Target mappings are backend responsibilities.
 
@@ -526,18 +550,23 @@ SFC Source -----------+
 Language-specific information required for source diagnostics, debugging,
 or graphical representation shall not be discarded during compilation.
 
-The compiler shall retain sufficient source mapping information to associate
-executable behavior with canonical source locations.
+The compiler shall retain sufficient internal source mapping information to
+associate executable behavior with its originating source language, canonical
+source location, and Program Organization Unit.
 
-(i think you mean temporary files i am fine with that)
+The form and storage duration of this internal compiler information are
+implementation details.
 
 ## 12. Graphical Representation
 
-Atropos may provide graphical representations of graphical IEC control
-languages. (in the form of bolt on applications.)
+Graphical representations of graphical IEC control languages may be provided
+by optional bolt-on viewer applications.
 
-A graphical representation is derived from canonical Atropos source and its
-semantic model.
+The compiler itself shall remain text based and shall not require a graphical
+programming environment.
+
+A graphical viewer shall derive its display from canonical Atropos source and,
+where useful, compiler-provided semantic information.
 
 The initial graphical language targets are:
 
@@ -545,25 +574,21 @@ The initial graphical language targets are:
 * Function Block Diagram
 * Sequential Function Chart
 
-A graphical renderer shall not invent executable behavior.
+A graphical viewer shall present the control language in a familiar graphical
+form without defining, modifying, or extending executable behavior.
 
-If source cannot be represented by a defined graphical language view,
-the compiler or rendering tool shall report that limitation explicitly. (this
-will not be an issue, the compiler will be text based purely and the rendering
-tool will be part of the bolt on gui interface. this is going to be a viewer
-only. translate the text into pretty pictures for the dummy engineers)
-
-Atropos does not require every supported control language to be interchangeable
-with every other control language.
+The graphical representation is a view of the existing canonical source, not a
+conversion into a second programming language or a separate project format.
 
 Structured Text authored as Structured Text remains Structured Text.
 
 Ladder Diagram authored as Ladder Diagram remains Ladder Diagram.
 
-The common semantic model exists to support compilation and analysis, not to
-imply lossless automatic conversion between fundamentally different source
-languages. (not sure exactly what this means but there will be no loss because
-there will be no conversion. the gui is a viewer)
+Function Block Diagram authored as Function Block Diagram remains Function
+Block Diagram.
+
+Sequential Function Chart authored as Sequential Function Chart remains
+Sequential Function Chart.
 
 ## 13. Diagnostics
 
@@ -607,17 +632,17 @@ language features.
 
 The following language design questions remain unresolved:
 
-* Exact top-level source grammar (we will work on this soon)
-* Whether one source file may contain multiple Programs 
-(i think potentially yes)
-* Exact control language block delimiters (soon, all of these)
+* Exact top-level source grammar
+* Final source file extension
+* Whether one source file may contain multiple Programs
+* Exact control language block delimiters
 * Routine and control body invocation syntax
 * Namespace or module support
 * Global variable declaration organization
 * Variable initialization syntax
 * Retained and non-retained variable semantics
-* Reference and pointer support (probably not, per IEC)
-* Dynamic memory restrictions (per IEC)
+* Reference and pointer support
+* Dynamic memory restrictions
 * Function side-effect restrictions
 * Cross-task variable access rules
 * Function Block body organization
@@ -625,10 +650,13 @@ The following language design questions remain unresolved:
 * Source-level attributes and metadata
 * Standard library organization
 * Standard Function Block organization
-(all of these need to conform to IEC)
 
 These questions shall be resolved through specification development and
 documented design decisions.
+
+Where an unresolved question corresponds to an IEC 61131-3 requirement or
+restriction, the applicable IEC behavior shall be the starting point for the
+Atropos design unless an intentional deviation is documented.
 
 ## 16. Normative Status
 
@@ -640,4 +668,3 @@ The terms **shall**, **shall not**, **should**, **should not**, and **may**
 are intended to develop normative meaning as the specification matures.
 
 Atropos currently makes no claim of IEC 61131-3 conformance or certification.
-
