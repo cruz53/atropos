@@ -1,7 +1,7 @@
 # Atropos Language Specification
 
 **Document status:** Draft
-**Specification version:** 0.1
+**Specification version:** 0.2
 **Project status:** Pre-alpha
 
 ## 1. Scope
@@ -49,6 +49,11 @@ represented in canonical Atropos source.
 An Atropos application shall be capable of being created, inspected, compiled,
 and maintained without a graphical development environment.
 
+Atropos source encodes program topology and semantics. Atropos source shall
+not encode graphical layout. Grid positions, wire coordinates, element
+placement, and other presentation metadata are not part of the language and
+shall not appear in canonical source.
+
 ### 2.2 Industrial Control Is the Primary Domain
 
 Atropos is a domain-specific programming language for industrial control.
@@ -75,6 +80,13 @@ Atropos shall build toward conformance with applicable IEC 61131-3 requirements.
 Where Atropos implements an IEC 61131-3 language element or semantic concept,
 its behavior should conform to the applicable standard unless an intentional
 deviation is documented.
+
+Atropos uses IEC 61131-3 vocabulary for standard language elements, including
+standard function blocks (such as `TON`, `CTU`, and `R_TRIG`) and standard
+functions (such as `GT` and `MOV`-class operations). Vendor-specific
+instruction mnemonics are not part of the Atropos language. Translation of
+vendor-specific textual formats into Atropos source is a tooling concern, not
+a language concern.
 
 Atropos does not currently claim IEC 61131-3 conformance.
 
@@ -145,6 +157,17 @@ from any control language in which that symbol and its type are valid.
 
 Language boundaries shall not implicitly create isolated variable or type
 systems.
+
+**Expression operator binding is language-specific and is a documented,
+intentional divergence.** The Ladder Diagram contact expression uses
+power-flow binding (no operator precedence; strict left-to-right
+accumulation, as a rung is read), defined in `ladder.md`. Structured Text
+uses conventional operator precedence per IEC 61131-3, to be defined in
+`structured-text.md`. To prevent confusion between the two rules, the
+boolean operator surfaces are deliberately disjoint: Ladder Diagram uses the
+symbols `&`, `|`, and `!`; Structured Text uses the keywords `AND`, `OR`,
+and `NOT`. A control language shall not accept the other language's boolean
+operator surface as an alias.
 
 ## 3. Source Model
 
@@ -293,7 +316,8 @@ PROGRAM Example
 
     LADDER MotorControl
 
-        ...
+        RUNG MotorSeal
+            (StartPB | MotorRun) & !StopPB -> MotorRun;
 
     END_LADDER
 
@@ -307,10 +331,9 @@ PROGRAM Example
 END_PROGRAM
 ```
 
-The example above is illustrative.
-
-The exact block delimiters, declaration syntax, and grammar are not yet
-normative.
+The Ladder Diagram body above reflects the current working draft of the
+Atropos ladder format (`ladder.md`). The PROGRAM-level grammar, the ST body,
+and the exact top-level block delimiters are not yet normative.
 
 ### 5.1 Language Identity
 
@@ -568,6 +591,12 @@ programming environment.
 A graphical viewer shall derive its display from canonical Atropos source and,
 where useful, compiler-provided semantic information.
 
+The graphical rendering of a control language body shall be a deterministic
+function of the parsed canonical source. Two renderings of the same source by
+conforming viewers shall present the same structure. A viewer shall not read,
+write, or require layout metadata, because no such metadata exists in
+canonical source (§2.1).
+
 The initial graphical language targets are:
 
 * Ladder Diagram
@@ -635,7 +664,8 @@ The following language design questions remain unresolved:
 * Exact top-level source grammar
 * Final source file extension
 * Whether one source file may contain multiple Programs
-* Exact control language block delimiters
+* Exact control language block delimiters *(Ladder Diagram: working draft in
+  `ladder.md`; ST, FBD, SFC: open)*
 * Routine and control body invocation syntax
 * Namespace or module support
 * Global variable declaration organization
@@ -650,6 +680,13 @@ The following language design questions remain unresolved:
 * Source-level attributes and metadata
 * Standard library organization
 * Standard Function Block organization
+
+The following previously open questions have working-draft resolutions
+recorded in `ladder.md` and `docs/decisions/`:
+
+* Ladder Diagram textual representation and rung structure
+* Ladder contact-expression operator binding (power-flow binding)
+* Standard element vocabulary (IEC 61131-3 names; no vendor mnemonics)
 
 These questions shall be resolved through specification development and
 documented design decisions.
