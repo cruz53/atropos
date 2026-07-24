@@ -557,16 +557,29 @@ specification.
 
 ### 9.2 Ladder Diagram
 
-Ladder Diagram logic shall execute in defined rung order.
+Ladder Diagram logic shall execute in defined rung order. Rungs execute in
+source order within their routine.
 
 Within a rung, evaluation shall follow the Ladder Diagram execution rules
-defined by the Ladder specification.
+defined by `ladder.md`.
 
-Branch evaluation, short-circuit behavior, coil writes, and multiple writes to
-the same variable shall be explicitly specified.
+Ladder Diagram rung evaluation shall not short-circuit. Every element in a
+rung's contact expression shall be evaluated or executed on every scan in
+which the rung is reached, including elements in parallel branches whose
+power-flow result is already determined. An in-rung Function Block executes
+with its boolean input driven by the power flow at its position, and
+therefore executes on every scan in which its rung is reached, regardless
+of upstream contact state. A compiler or runtime may skip evaluation only
+where skipping is provably unobservable (see Section 20).
 
-A Ladder routine shall complete after all reachable rungs in the routine have
-been evaluated.
+Writes performed by an earlier rung shall be observable by later rungs
+within the same task activation, consistent with Section 7.2.
+
+The policy for multiple writes to the same coil remains under definition in
+`ladder.md`.
+
+A Ladder routine shall complete after all reachable rungs in the routine
+have been evaluated.
 
 ### 9.3 Function Block Diagram
 

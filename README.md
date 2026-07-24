@@ -54,6 +54,11 @@ Sequential Function Chart programs are considered **views of source
 code**,
 not the canonical project format.
 
+Atropos source encodes program **topology**, never graphical **layout**.
+The graphical rendering of a rung, network, or chart is derived
+deterministically from the parsed source: one canonical picture, no layout
+metadata, no layout diffs.
+
 The intended model is:
 
 ```text
@@ -97,15 +102,17 @@ A project may contain Ladder Diagram, Structured Text, Function Block Diagram,
 and Sequential Function Chart logic while sharing a common type and variable
 system.
 
-The following is a conceptual example only. The Atropos grammar has not yet
-been defined:
+In the following example, the Ladder Diagram body reflects the current
+working draft of the Atropos ladder format. The ST and SFC bodies remain
+conceptual only:
 
 ```text
 PROGRAM BatchSystem
 
 LADDER MotorControl
 
-    XIC(StartPB) XIO(StopPB) OTE(MotorRun);
+    RUNG MotorSeal
+        (StartPB | MotorRun) & !StopPB -> MotorRun;
 
 END_LADDER
 
@@ -131,8 +138,43 @@ END_SFC
 END_PROGRAM
 ```
 
-This syntax is illustrative and should not be interpreted as a stable language
+This syntax is a draft and should not be interpreted as a stable language
 specification.
+
+## Ladder Diagram as Text (Working Draft)
+
+The Atropos textual ladder format is the first language surface under
+active design. Each rung is one statement: a contact expression, one or
+more `->` targets, terminated by `;`.
+
+```text
+     StartPB      StopPB               MotorRun
+----+---] [---+----]/[-------------------( )------
+    |         |
+    | MotorRun|
+    +---] [---+
+```
+
+```text
+RUNG MotorSeal
+    (StartPB | MotorRun) & !StopPB -> MotorRun;
+```
+
+Series is `&`, parallel is `|`, a normally-closed contact is `!`. Contact
+expressions use **power-flow binding**: no operator precedence, strict
+left-to-right reading, exactly as a rung is read on screen — a trailing
+series contact guards everything before it.
+
+Stateful elements execute in-rung. Function blocks use IEC 61131-3 names
+and appear directly in the power path:
+
+```text
+RUNG DelayedMotor
+    RunCmd & Timer1:TON(PT := T#3s) -> Motor;
+```
+
+The working draft, including the canonical rung set, semantic rules, and
+draft grammar, is in `spec/ladder.md`.
 
 ## Architecture
 
@@ -166,6 +208,8 @@ implementation.
 The Atropos compiler parses all supported source languages into a common
 semantic representation.
 
+The compiler is implemented in C++.
+
 The planned compilation pipeline is conceptually:
 
 ```text
@@ -185,7 +229,8 @@ Target Backend
 ```
 
 Initial development is expected to use C as the first native code generation
-target.
+target. Note the distinction: C++ is the language the compiler is written
+in; C is the code the compiler emits.
 
 A C backend allows an early Atropos compiler to use mature existing toolchains
 such as Clang or GCC for native code generation.
@@ -343,6 +388,11 @@ formats.
 Atropos intends to align its control programming model and semantics with IEC
 61131-3 and to build toward formal language conformance where practical.
 
+Atropos uses IEC 61131-3 vocabulary for standard language elements,
+including standard function blocks (`TON`, `CTU`, `R_TRIG`, ...) and
+standard functions. Vendor-specific instruction mnemonics are not part of
+the language.
+
 The project is currently in the specification phase and **does not claim IEC
 61131-3 conformance at this time**.
 
@@ -364,9 +414,10 @@ The immediate priorities are:
 
 1. Define the project charter and architectural boundaries.
 2. Define the source and project model.
-3. Define the execution model.
+3. Define the execution model. *(draft in `spec/`)*
 4. Define the common type and variable system.
 5. Define the initial textual Ladder Diagram representation.
+   *(working draft in `spec/ladder.md`)*
 6. Define the Structured Text language profile.
 7. Define the Atropos intermediate representation.
 8. Define the compiler/runtime ABI boundary.
@@ -375,6 +426,9 @@ The immediate priorities are:
 
 The project is intentionally beginning with specification work before
 implementation.
+
+Significant design decisions are recorded in `docs/decisions/` as they are
+made.
 
 ## Contributing
 
@@ -408,4 +462,3 @@ See `LICENSE` and future licensing architecture documentation for details.
 **Atropos is an experiment in what PLC development could look like if
 industrial control software were designed for plain text, open tooling,
 modern version control, and portable execution from the beginning.**
-
