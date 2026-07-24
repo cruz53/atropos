@@ -413,16 +413,10 @@ cross-references address rungs unambiguously.
 
   ```text
   MULTIRUNG AuxContactorControl
-      RUNG AuxTimer
           MotorRun -> AuxDelay:TON(PT := T#3s);
-      RUNG AuxOut
           AuxDelay.Q -> AuxContactor;
   END_MULTIRUNG
   ```
-
-  Open sub-questions if pursued: does the group name appear in
-  diagnostics alongside the rung name; does the graphical view render it
-  as a titled region; may inner rungs be anonymous (below)?
 
 * **Shortened, name-optional rung keyword.** For trivial rungs where
   naming is friction, a short form — e.g. `R` with an optional name —
